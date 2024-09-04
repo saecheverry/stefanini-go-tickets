@@ -1,3 +1,4 @@
+import { Exclude } from "class-transformer"
 import { IsNotEmpty, IsOptional, IsString } from "class-validator"
 
 export class Device {
@@ -28,4 +29,7 @@ export class Device {
     @IsString()
     @IsOptional()
     description: string
+
+    @Exclude()
+    _id: string;
 }

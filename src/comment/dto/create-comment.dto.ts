@@ -1,3 +1,4 @@
+import { Exclude } from "class-transformer";
 import { IsNotEmpty, IsString } from "class-validator";
 
 export class Comment {
@@ -16,4 +17,7 @@ export class Comment {
     @IsString()
     @IsNotEmpty()
     comment: string;
+
+    @Exclude()
+    _id: string;
 }

@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsArray, IsOptional, ValidateNested, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Exclude, Type } from 'class-transformer';
 
 enum Role {
   COMMERCE = 'COMMERCE',
@@ -39,4 +39,7 @@ export class Evidence {
   @Type(() => Approval)
   @IsOptional() 
   approvals: Approval[];
+
+  @Exclude()
+  _id: string;
 }

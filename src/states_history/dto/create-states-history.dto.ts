@@ -1,6 +1,5 @@
 import { Exclude, Type } from 'class-transformer';
 import {
-    IsEnum,
     IsNotEmpty,
     IsOptional,
     IsString,

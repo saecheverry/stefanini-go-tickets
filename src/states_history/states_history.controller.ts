@@ -7,7 +7,7 @@ import { ParseJsonPipe } from 'src/pipes/json.pipe';
 import { QueryExclude, QueryFilters, QueryParams, QuerySort } from 'stefaninigo';
 import { Utils } from 'src/utils/utils';
 
-@Controller('state')
+@Controller('states')
 export class StatesHistoryController {
   constructor(private readonly statesHistoryService: StatesHistoryService) {}
 
@@ -53,7 +53,7 @@ export class StatesHistoryController {
             limit,
             queryParams,
         );
-        response.records = Utils.mapRecord(Comment, response.records);
+        response.records = Utils.mapRecord(StatesHistory, response.records);
         return response;
     } catch (error) {
         return error.message;
