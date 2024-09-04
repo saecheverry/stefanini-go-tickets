@@ -7,7 +7,7 @@ import { ParseJsonPipe } from 'src/pipes/json.pipe';
 import { QueryExclude, QueryFilters, QueryParams, QuerySort } from 'stefaninigo';
 import { Utils } from 'src/utils/utils';
 
-@Controller('states')
+@Controller('states/history')
 export class StatesHistoryController {
   constructor(private readonly statesHistoryService: StatesHistoryService) {}
 

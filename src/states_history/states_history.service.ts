@@ -6,7 +6,7 @@ import { DatabaseService, QueryParams } from 'stefaninigo';
 
 @Injectable()
 export class StatesHistoryService {
-  private collectionName: string = 'states_historys';
+  private collectionName: string = 'states_history';
   constructor(
     @Inject('mongodb') private readonly databaseService: DatabaseService,
   ) {}

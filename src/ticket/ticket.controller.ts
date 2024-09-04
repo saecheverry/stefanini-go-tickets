@@ -7,7 +7,7 @@ import { QueryExclude, QueryFilters, QueryParams, QuerySort } from 'stefaninigo'
 import { ParseJsonPipe } from 'src/pipes/json.pipe';
 import { Utils } from 'src/utils/utils';
 
-@Controller('ticket')
+@Controller('tickets')
 export class TicketController {
   constructor(private readonly ticketService: TicketService) {}
 
