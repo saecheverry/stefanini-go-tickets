@@ -78,4 +78,18 @@ export class TicketController {
       return error.message;
     }
   }
+
+  @Get(":id/flows")
+  async flows(@Param("id") id: string) {
+    try {
+      return await this.ticketService.flows(id)
+    } catch (error) {
+      return error.message;
+    }
+  }
+
+  @Post("")
+  async postFlows () {
+    
+  }
 }

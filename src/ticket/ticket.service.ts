@@ -3,6 +3,9 @@ import { Ticket } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { DatabaseService, QueryParams } from 'stefaninigo';
 import { v4 as uuidv4 } from 'uuid';
+import { StatesHistory } from 'src/states_history/dto/create-states-history.dto';
+import { Utils } from 'src/utils/utils';
+import { Evidence } from 'src/evidence/dto/create-evidence.dto';
 
 @Injectable()
 export class TicketService {
@@ -71,4 +74,117 @@ export class TicketService {
       (await this.databaseService.update(id, ticket, this.collectionName)) && 'Update successful'
     );
   }
+
+  async flows(id: string) {
+    const ticket = await this.databaseService.get(id, this.collectionName);
+
+    const commercePromise = this.databaseService.get(ticket.commerceId, "commerces");
+    const branchPromise = this.databaseService.get(ticket.branchId, "branches");
+
+    const contactsPromise = ticket.contactsId.length > 0
+      ? Promise.all(ticket.contactsId.map((contact) => this.databaseService.get(contact.id, "contacts")))
+      : Promise.resolve([]);
+
+    const coordinatorsPromise = ticket.coordinators.length > 0
+      ? Promise.all(ticket.coordinators.map((coordinator) => this.databaseService.get(coordinator.id, "employees")))
+      : Promise.resolve([]);
+
+    const technicalsPromise = ticket.technicals.length > 0
+      ? Promise.all(ticket.technicals.map((technical) => this.databaseService.get(technical.id, "employees")))
+      : Promise.resolve([]);
+
+    const statesHistoryPromise = this.databaseService.list(0, 100, {
+      filters: { ticketId: ticket.id },
+    }, "states_history");
+
+    const evidencesPromise = this.databaseService.list(0, 100, {
+      filters: { ticketId: ticket.id }
+    }, "evidences")
+
+    const [commerce, branch, contacts, coordinators, technicals, statesHistory, evidences] = await Promise.all([
+      commercePromise,
+      branchPromise,
+      contactsPromise,
+      coordinatorsPromise,
+      technicalsPromise,
+      statesHistoryPromise,
+      evidencesPromise
+    ]);
+
+    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, evidences);
+  }
+
+  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, evidences) {
+    return {
+      ticket: {
+        id: ticket?.id,
+        ticket_number: ticket?.ticket_number,
+        description: ticket?.description,
+        createAt: ticket?.createAt,
+        updateAt: ticket?.updateAt,
+        plannedDate: ticket?.plannedDate,
+        sla: ticket?.sla,
+        attentionType: ticket?.attentionType,
+        category: ticket?.category,
+        subcategory: ticket?.subcategory,
+        priority: ticket?.priority,
+        currentState: ticket?.currentState,
+      },
+      commerce: {
+        id: commerce?.id,
+        rut: commerce?.rut,
+        name: commerce?.name,
+        observation: commerce?.observation,
+        services: commerce?.services,
+        branche: {
+          id: branch?.id,
+          rut: branch?.rut,
+          location: {
+            address: branch?.location?.address,
+            city: branch?.location?.city,
+            region: branch?.location?.region,
+            commune: branch?.location?.commune,
+            coords: {
+              latitude: branch?.location?.coords?.latitude,
+              longitude: branch?.location?.coords?.longitude,
+            },
+            contacts: contacts?.map((contact) => ({
+              id: contact?.id,
+              names: contact?.names,
+              phoneNumber: contact?.phoneNumber,
+              email: contact?.email,
+            })),
+          },
+          name: branch?.name,
+          observation: branch?.observation,
+          contacts: branch?.contacts?.map((contact) => ({
+            name: contact?.name,
+            phone: contact?.phone,
+            email: contact?.email,
+          })),
+        },
+        logo: commerce?.logo,
+      },
+      coordinators: coordinators?.map((coordinator) => ({
+        id: coordinator?.id,
+        role: coordinator?.role,
+        rut: coordinator?.rut,
+        fullName: coordinator?.fullName,
+        phone: coordinator?.phone,
+        email: coordinator?.email,
+      })),
+      technicals: technicals?.map((technical) => ({
+        id: technical?.id,
+        role: technical?.role,
+        phone: technical?.phone,
+        email: technical?.email,
+        enabled: technical?.enabled,
+        assignmentDate: technical?.assignmentDate,
+      })),
+      history: Utils.mapRecord(StatesHistory, statesHistory),
+      evidences: Utils.mapRecord(Evidence, evidences)
+    };
+  }
+
+
 }

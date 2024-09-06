@@ -23,6 +23,10 @@ export class Evidence {
 
   @IsString()
   @IsNotEmpty()
+  ticketId: string;
+
+  @IsString()
+  @IsNotEmpty()
   state: string;
 
   @IsString()
