@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { StatesHistory } from 'src/states_history/dto/create-states-history.dto';
 import { Utils } from 'src/utils/utils';
 import { Evidence } from 'src/evidence/dto/create-evidence.dto';
+import { Comment } from 'src/comment/dto/create-comment.dto';
 
 @Injectable()
 export class TicketService {
@@ -77,7 +78,6 @@ export class TicketService {
 
   async flows(id: string) {
     const ticket = await this.databaseService.get(id, this.collectionName);
-
     const commercePromise = this.databaseService.get(ticket.commerceId, "commerces");
     const branchPromise = this.databaseService.get(ticket.branchId, "branches");
 
@@ -93,6 +93,10 @@ export class TicketService {
       ? Promise.all(ticket.technicals.map((technical) => this.databaseService.get(technical.id, "employees")))
       : Promise.resolve([]);
 
+    const commentsPromise = this.databaseService.list(0, 100, {
+        filters: { ticketId: ticket.id },
+      }, "comments");
+
     const statesHistoryPromise = this.databaseService.list(0, 100, {
       filters: { ticketId: ticket.id },
     }, "states_history");
@@ -101,20 +105,21 @@ export class TicketService {
       filters: { ticketId: ticket.id }
     }, "evidences")
 
-    const [commerce, branch, contacts, coordinators, technicals, statesHistory, evidences] = await Promise.all([
+    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences] = await Promise.all([
       commercePromise,
       branchPromise,
       contactsPromise,
       coordinatorsPromise,
       technicalsPromise,
       statesHistoryPromise,
+      commentsPromise,
       evidencesPromise
     ]);
 
-    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, evidences);
+    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences);
   }
 
-  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, evidences) {
+  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences) {
     return {
       ticket: {
         id: ticket?.id,
@@ -136,34 +141,29 @@ export class TicketService {
         name: commerce?.name,
         observation: commerce?.observation,
         services: commerce?.services,
-        branche: {
-          id: branch?.id,
-          rut: branch?.rut,
-          location: {
-            address: branch?.location?.address,
-            city: branch?.location?.city,
-            region: branch?.location?.region,
-            commune: branch?.location?.commune,
-            coords: {
-              latitude: branch?.location?.coords?.latitude,
-              longitude: branch?.location?.coords?.longitude,
-            },
-            contacts: contacts?.map((contact) => ({
-              id: contact?.id,
-              names: contact?.names,
-              phoneNumber: contact?.phoneNumber,
-              email: contact?.email,
-            })),
-          },
-          name: branch?.name,
-          observation: branch?.observation,
-          contacts: branch?.contacts?.map((contact) => ({
-            name: contact?.name,
-            phone: contact?.phone,
-            email: contact?.email,
-          })),
-        },
         logo: commerce?.logo,
+      },
+      branche: {
+        id: branch?.id,
+        rut: branch?.rut,
+        location: {
+          address: branch?.location?.address,
+          city: branch?.location?.city,
+          region: branch?.location?.region,
+          commune: branch?.location?.commune,
+          coords: {
+            latitude: branch?.location?.coords?.latitude,
+            longitude: branch?.location?.coords?.longitude,
+          },
+        },
+        name: branch?.name,
+        observation: branch?.observation,
+        contacts: contacts?.map((contact) => ({
+          id: contact?.id,
+          names: contact?.names,
+          phoneNumber: contact?.phoneNumber,
+          email: contact?.email,
+        })),
       },
       coordinators: coordinators?.map((coordinator) => ({
         id: coordinator?.id,
@@ -182,6 +182,7 @@ export class TicketService {
         assignmentDate: technical?.assignmentDate,
       })),
       history: Utils.mapRecord(StatesHistory, statesHistory),
+      comments: Utils.mapRecord(Comment, comments),
       evidences: Utils.mapRecord(Evidence, evidences)
     };
   }

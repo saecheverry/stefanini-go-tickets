@@ -13,6 +13,10 @@ export class Comment {
     @IsString()
     @IsNotEmpty()
     employeeId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    statusId: string;
   
     @IsString()
     @IsNotEmpty()
