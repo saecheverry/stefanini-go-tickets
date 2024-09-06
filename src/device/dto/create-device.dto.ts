@@ -8,6 +8,10 @@ export class Device {
 
     @IsString()
     @IsNotEmpty()
+    ticketId: string
+
+    @IsString()
+    @IsNotEmpty()
     type: string
 
     @IsString()

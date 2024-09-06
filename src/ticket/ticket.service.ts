@@ -7,6 +7,7 @@ import { StatesHistory } from 'src/states_history/dto/create-states-history.dto'
 import { Utils } from 'src/utils/utils';
 import { Evidence } from 'src/evidence/dto/create-evidence.dto';
 import { Comment } from 'src/comment/dto/create-comment.dto';
+import { Device } from 'src/device/dto/create-device.dto';
 
 @Injectable()
 export class TicketService {
@@ -103,9 +104,13 @@ export class TicketService {
 
     const evidencesPromise = this.databaseService.list(0, 100, {
       filters: { ticketId: ticket.id }
-    }, "evidences")
+    }, "evidences");
 
-    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences] = await Promise.all([
+    const devicesPromise = this.databaseService.list(0, 100, {
+      filters: { ticketId: ticket.id }
+    }, "devices");
+
+    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices] = await Promise.all([
       commercePromise,
       branchPromise,
       contactsPromise,
@@ -113,13 +118,19 @@ export class TicketService {
       technicalsPromise,
       statesHistoryPromise,
       commentsPromise,
-      evidencesPromise
+      evidencesPromise,
+      devicesPromise
     ]);
-
-    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences);
+    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices);
   }
 
-  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences) {
+  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices) {
+    const _evidences = Utils.mapRecord(Evidence, evidences);
+    const _devices = Utils.mapRecord(Device, devices);
+    _evidences.forEach(evidence => {
+        evidence["devices"] = _devices.filter(device => device.evidenceId === evidence["id"]);
+    });
+
     return {
       ticket: {
         id: ticket?.id,
@@ -183,7 +194,7 @@ export class TicketService {
       })),
       history: Utils.mapRecord(StatesHistory, statesHistory),
       comments: Utils.mapRecord(Comment, comments),
-      evidences: Utils.mapRecord(Evidence, evidences)
+      evidences: _evidences
     };
   }
 
