@@ -84,7 +84,6 @@ export class TicketService {
     const categoryPromise = this.databaseService.get(ticket.categoryId, "categories");
     const subcategoryPromise = this.databaseService.get(ticket.subcategoryId, "subcategories");
 
-    console.log(ticket.contactsId)
     const contactsPromise = ticket.contactsId.length > 0
       ? Promise.all(ticket.contactsId.map((contactId) => this.databaseService.get(contactId, "contacts")))
       : Promise.resolve([]);
