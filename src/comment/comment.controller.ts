@@ -62,9 +62,9 @@ export class CommentController {
 
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() UpdateCommentDto: UpdateCommentDto) {
+  update(@Param('id') id: string, @Body() updateCommentDto: UpdateCommentDto) {
     try {
-      return this.commentService.update(id, UpdateCommentDto);
+      return this.commentService.update(id, updateCommentDto);
     } catch (error) {
       return error.message;
     }
