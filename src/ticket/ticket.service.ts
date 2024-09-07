@@ -81,6 +81,8 @@ export class TicketService {
     const ticket = await this.databaseService.get(id, this.collectionName);
     const commercePromise = this.databaseService.get(ticket.commerceId, "commerces");
     const branchPromise = this.databaseService.get(ticket.branchId, "branches");
+    const categoryPromise = this.databaseService.get(ticket.categoryId, "categories");
+    const subcategoryPromise = this.databaseService.get(ticket.subcategoryId, "subcategories");
 
     const contactsPromise = ticket.contactsId.length > 0
       ? Promise.all(ticket.contactsId.map((contact) => this.databaseService.get(contact.id, "contacts")))
@@ -110,7 +112,7 @@ export class TicketService {
       filters: { ticketId: ticket.id }
     }, "devices");
 
-    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices] = await Promise.all([
+    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices, category, subcategory] = await Promise.all([
       commercePromise,
       branchPromise,
       contactsPromise,
@@ -119,18 +121,34 @@ export class TicketService {
       statesHistoryPromise,
       commentsPromise,
       evidencesPromise,
-      devicesPromise
+      devicesPromise,
+      categoryPromise,
+      subcategoryPromise
     ]);
-    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices);
+    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices, category, subcategory);
   }
 
-  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices) {
-    const _evidences = Utils.mapRecord(Evidence, evidences);
-    const _devices = Utils.mapRecord(Device, devices);
-    _evidences.forEach(evidence => {
-        evidence["devices"] = _devices.filter(device => device.evidenceId === evidence["id"]);
+  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, _comments, _evidences, _devices, category, subcategory) {
+    const evidences = Utils.mapRecord(Evidence, _evidences);
+    const devices = Utils.mapRecord(Device, _devices);
+    evidences.forEach(evidence => {
+        evidence["devices"] = devices.filter(device => device.evidenceId === evidence["id"]);
     });
+    delete category._id;
+    delete subcategory._id;
 
+    const allEmployees = [...coordinators, ...technicals];
+
+    const comments = Utils.mapRecord(Comment, _comments);
+
+    // Agrega el employeeName a cada comentario
+    const commentsWithEmployeeNames = comments.map((comment) => {
+      const employee = allEmployees.find(emp => emp.id === comment.employeeId);
+      return {
+        ...comment,
+        employeeName: employee ? `${employee.firstName} ${employee.secondName} ${employee.firstSurname} ${employee.secondSurname}` : 'Nombre no encontrado',
+      };
+    });
     return {
       ticket: {
         id: ticket?.id,
@@ -141,8 +159,8 @@ export class TicketService {
         plannedDate: ticket?.plannedDate,
         sla: ticket?.sla,
         attentionType: ticket?.attentionType,
-        category: ticket?.category,
-        subcategory: ticket?.subcategory,
+        category,
+        subcategory,
         priority: ticket?.priority,
         currentState: ticket?.currentState,
       },
@@ -154,7 +172,7 @@ export class TicketService {
         services: commerce?.services,
         logo: commerce?.logo,
       },
-      branche: {
+      branch: {
         id: branch?.id,
         rut: branch?.rut,
         location: {
@@ -193,8 +211,8 @@ export class TicketService {
         assignmentDate: technical?.assignmentDate,
       })),
       history: Utils.mapRecord(StatesHistory, statesHistory),
-      comments: Utils.mapRecord(Comment, comments),
-      evidences: _evidences
+      comments: commentsWithEmployeeNames,
+      evidences
     };
   }
 

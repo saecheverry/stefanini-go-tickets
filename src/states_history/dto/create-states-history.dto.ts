@@ -56,6 +56,10 @@ export class StatesHistory {
     ticketId: string;
 
     @IsString()
+    @IsNotEmpty()
+    employeeId: string;
+
+    @IsString()
     @IsOptional()
     description: string;
 

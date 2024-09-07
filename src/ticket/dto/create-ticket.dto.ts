@@ -41,11 +41,11 @@ export class Ticket {
 
     @IsString()
     @IsNotEmpty()
-    category: string;
+    categoryId: string;
 
     @IsString()
     @IsNotEmpty()
-    subcategory: string;
+    subcategoryId: string;
 
     @IsString()
     @IsNotEmpty()
