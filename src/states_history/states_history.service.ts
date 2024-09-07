@@ -40,7 +40,7 @@ export class StatesHistoryService {
         state: mappedState,
         createdAt
       }, this.collectionName);
-      await this.databaseService.update(states.ticketId, {currentState: mappedState.value });
+      await this.databaseService.update(states.ticketId, {currentState: states.stateId }, "tickets");
       return [id];
     }
   }
