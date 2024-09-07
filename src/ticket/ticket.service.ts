@@ -84,8 +84,9 @@ export class TicketService {
     const categoryPromise = this.databaseService.get(ticket.categoryId, "categories");
     const subcategoryPromise = this.databaseService.get(ticket.subcategoryId, "subcategories");
 
+    console.log(ticket.contactsId)
     const contactsPromise = ticket.contactsId.length > 0
-      ? Promise.all(ticket.contactsId.map((contact) => this.databaseService.get(contact.id, "contacts")))
+      ? Promise.all(ticket.contactsId.map((contactId) => this.databaseService.get(contactId, "contacts")))
       : Promise.resolve([]);
 
     const coordinatorsPromise = ticket.coordinators.length > 0
@@ -140,7 +141,7 @@ export class TicketService {
     const allEmployees = [...coordinators, ...technicals];
 
     const comments = Utils.mapRecord(Comment, _comments);
-    
+
     const commentsWithEmployeeNames = comments.map((comment) => {
       const employee = allEmployees.find(emp => emp?.id === comment?.employeeId);
       return {
@@ -188,9 +189,9 @@ export class TicketService {
         observation: branch?.observation,
         contacts: contacts?.map((contact) => ({
           id: contact?.id,
-          names: contact?.names,
-          phoneNumber: contact?.phoneNumber,
-          email: contact?.email,
+          names: `${contact?.firstName} ${contact?.lastName}` ,
+          phone: contact?.phone,
+          email: contact?.mail,
         })),
       },
       coordinators: coordinators?.map((coordinator) => ({
