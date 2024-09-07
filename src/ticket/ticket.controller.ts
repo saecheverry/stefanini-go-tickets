@@ -84,6 +84,7 @@ export class TicketController {
     try {
       return await this.ticketService.flows(id)
     } catch (error) {
+      console.error(error)
       return error.message;
     }
   }

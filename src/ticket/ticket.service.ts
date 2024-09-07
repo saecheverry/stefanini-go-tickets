@@ -134,16 +134,15 @@ export class TicketService {
     evidences.forEach(evidence => {
         evidence["devices"] = devices.filter(device => device.evidenceId === evidence["id"]);
     });
-    delete category._id;
-    delete subcategory._id;
+    delete category?._id;
+    delete subcategory?._id;
 
     const allEmployees = [...coordinators, ...technicals];
 
     const comments = Utils.mapRecord(Comment, _comments);
-
-    // Agrega el employeeName a cada comentario
+    
     const commentsWithEmployeeNames = comments.map((comment) => {
-      const employee = allEmployees.find(emp => emp.id === comment.employeeId);
+      const employee = allEmployees.find(emp => emp?.id === comment?.employeeId);
       return {
         ...comment,
         employeeName: employee ? `${employee.firstName} ${employee.secondName} ${employee.firstSurname} ${employee.secondSurname}` : 'Nombre no encontrado',
