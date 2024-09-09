@@ -69,6 +69,55 @@ export class TicketService {
     };
   }
 
+  async listFlows(page: number, limit: number, queryParams: QueryParams) {
+    page = Math.max(page, 1);
+    const start = (page - 1) * limit;
+    const total = await this.databaseService.count(queryParams, this.collectionName);
+
+    const response = await this.databaseService.list(start, limit, queryParams, this.collectionName);
+    const tickets = Array.isArray(response) ? response : [];
+
+    const {
+      ticketsId, categoriesId, subcategoriesId, commercesId, branchesId,
+      contactsId, coordinatorsId, technicalsId
+    } = this.mapFieldsIds(tickets);
+
+    const records = await this.processFlows(tickets, {
+      ticketsId, commercesId, branchesId, categoriesId, subcategoriesId,
+      contactsId, coordinatorsId, technicalsId
+    });
+
+    return {
+      total,
+      page,
+      limit,
+      records,
+    };
+  }
+
+  mapFieldsIds(tickets) {
+    return tickets.reduce((acc, ticket) => {
+      acc.ticketsId.push(ticket.id);
+      acc.categoriesId.push(ticket.categoryId);
+      acc.subcategoriesId.push(ticket.subcategoryId);
+      acc.commercesId.push(ticket.commerceId);
+      acc.branchesId.push(ticket.branchId);
+      acc.contactsId.push(...ticket.contactsId);
+      acc.coordinatorsId.push(...ticket.coordinators.map(coordinator => coordinator.id));
+      acc.technicalsId.push(...ticket.technicals.map(technical => technical.id));
+      return acc;
+    }, {
+      ticketsId: [],
+      categoriesId: [],
+      subcategoriesId: [],
+      commercesId: [],
+      branchesId: [],
+      contactsId: [],
+      coordinatorsId: [],
+      technicalsId: []
+    });
+  }
+
   async update(id: string, ticket: UpdateTicketDto) {
     const updatedAt = new Date().toISOString();
     ticket["updatedAt"] = updatedAt;
@@ -77,62 +126,118 @@ export class TicketService {
     );
   }
 
-  async flows(id: string) {
-    const ticket = await this.databaseService.get(id, this.collectionName);
-    const commercePromise = this.databaseService.get(ticket.commerceId, "commerces");
-    const branchPromise = this.databaseService.get(ticket.branchId, "branches");
-    const categoryPromise = this.databaseService.get(ticket.categoryId, "categories");
-    const subcategoryPromise = this.databaseService.get(ticket.subcategoryId, "subcategories");
+  async flows(ticketId: string) {
+    const ticket = await this.databaseService.get(ticketId, this.collectionName);
+    
+    const {
+      ticketsId, categoriesId, subcategoriesId, commercesId, branchesId,
+      contactsId, coordinatorsId, technicalsId
+    } = this.mapFieldsIds([ticket]);
 
-    const contactsPromise = ticket.contactsId.length > 0
-      ? Promise.all(ticket.contactsId.map((contactId) => this.databaseService.get(contactId, "contacts")))
-      : Promise.resolve([]);
+    const records = await this.processFlows([ticket], {
+      ticketsId, commercesId, branchesId, categoriesId, subcategoriesId,
+      contactsId, coordinatorsId, technicalsId
+    });
 
-    const coordinatorsPromise = ticket.coordinators.length > 0
-      ? Promise.all(ticket.coordinators.map((coordinator) => this.databaseService.get(coordinator.id, "employees")))
-      : Promise.resolve([]);
+    return records[0];
+  }
 
-    const technicalsPromise = ticket.technicals.length > 0
-      ? Promise.all(ticket.technicals.map((technical) => this.databaseService.get(technical.id, "employees")))
-      : Promise.resolve([]);
+  async processFlows(tickets,  {
+    ticketsId, commercesId, branchesId, categoriesId, subcategoriesId,
+    contactsId, coordinatorsId, technicalsId
+  }) {
+    const LIMIT = 100;
 
-    const commentsPromise = this.databaseService.list(0, 100, {
-        filters: { ticketId: ticket.id },
-      }, "comments");
-
-    const statesHistoryPromise = this.databaseService.list(0, 100, {
-      filters: { ticketId: ticket.id },
-    }, "states_history");
-
-    const evidencesPromise = this.databaseService.list(0, 100, {
-      filters: { ticketId: ticket.id }
-    }, "evidences");
-
-    const devicesPromise = this.databaseService.list(0, 100, {
-      filters: { ticketId: ticket.id }
-    }, "devices");
-
-    const [commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices, category, subcategory] = await Promise.all([
-      commercePromise,
-      branchPromise,
-      contactsPromise,
-      coordinatorsPromise,
-      technicalsPromise,
-      statesHistoryPromise,
-      commentsPromise,
-      evidencesPromise,
-      devicesPromise,
-      categoryPromise,
-      subcategoryPromise
+    const [
+      commercesList, branchesList, categoriesList, subcategoriesList, contactsList, coordinatorsList,
+      technicalsList, statesHistoryList, commentsList, evidencesList,
+      devicesList, 
+    ] = await Promise.all([
+      this.databaseService.list(0, LIMIT, { filters: { id: commercesId } }, "commerces"),
+      this.databaseService.list(0, LIMIT, { filters: { id: branchesId } }, "branches"),
+      this.databaseService.list(0, LIMIT, { filters: { id: categoriesId } }, "categories"),
+      this.databaseService.list(0, LIMIT, { filters: { id: subcategoriesId } }, "subcategories"),
+      this.databaseService.list(0, LIMIT, { filters: { id: contactsId } }, "contacts"),
+      this.databaseService.list(0, LIMIT, { filters: { id: coordinatorsId } }, "employees"),
+      this.databaseService.list(0, LIMIT, { filters: { id: technicalsId } }, "employees"),
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "states_history"),
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "comments"),
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "evidences"),
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "devices")
     ]);
-    return this.mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, comments, evidences, devices, category, subcategory);
+    const records = [];
+    for (const ticket of tickets) {
+      const elements = this.getOwnTicketElements(
+        ticket, commercesList, branchesList, contactsList, coordinatorsList,
+        technicalsList, statesHistoryList, commentsList, evidencesList,
+        devicesList, categoriesList, subcategoriesList
+      );
+
+      const ticketResult = this.mapSuperTicket(
+        elements.ticket, elements.commerce, elements.branch, elements.contacts,
+        elements.coordinators, elements.technicals, elements.statesHistory,
+        elements.comments, elements.evidences, elements.devices,
+        elements.category, elements.subcategory
+      );
+
+      records.push(ticketResult);
+    }
+
+    return records;
+  }
+
+  getOwnTicketElements(ticket,
+    commercesList,
+    branchesList,
+    contactsList,
+    coordinatorsList,
+    technicalsList,
+    statesHistoryList,
+    commentsList,
+    evidencesList,
+    devicesList,
+    categoriesList,
+    subcategoriesList) {
+
+    const commerce = commercesList.find(commerce => commerce.id === ticket.commerceId);
+    const branch = branchesList.find(branch => branch.id === ticket.branchId);
+    const category = categoriesList.find(category => category.id === ticket.categoryId);
+    const subcategory = subcategoriesList.find(subcategory => subcategory.id === ticket.subcategoryId);
+
+    const contacts = contactsList.filter(contact => contact.commerceId === ticket.commerceId);
+    const coordinators = Array.isArray(ticket.coordinators)
+      ? coordinatorsList.filter(coordinator => ticket.coordinators.map(c=>c.id)?.includes(coordinator.id))
+      : [];
+    const technicals = Array.isArray(ticket.technicals)
+      ? technicalsList.filter(technical => ticket.technicals.map(t=>t.id)?.includes(technical.id))
+      : [];
+
+    const statesHistory = statesHistoryList.filter(history => history.ticketId === ticket.id);
+    const comments = commentsList.filter(comment => comment.ticketId === ticket.id);
+    const evidences = evidencesList.filter(evidence => evidence.ticketId === ticket.id);
+    const devices = devicesList.filter(device => evidences.some(evidence => evidence.id === device.evidenceId));
+
+    return {
+      ticket,
+      commerce,
+      branch,
+      contacts,
+      coordinators,
+      technicals,
+      statesHistory,
+      comments,
+      evidences,
+      devices,
+      category,
+      subcategory
+    };
   }
 
   mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, _comments, _evidences, _devices, category, subcategory) {
     const evidences = Utils.mapRecord(Evidence, _evidences);
     const devices = Utils.mapRecord(Device, _devices);
     evidences.forEach(evidence => {
-        evidence["devices"] = devices.filter(device => device.evidenceId === evidence["id"]);
+      evidence["devices"] = devices.filter(device => device.evidenceId === evidence["id"]);
     });
     delete category?._id;
     delete subcategory?._id;
@@ -169,7 +274,7 @@ export class TicketService {
         name: commerce?.name,
         observation: commerce?.observation,
         services: commerce?.services,
-        logo: commerce?.logo,
+        logo: `${process.env["API_DOMAIN"]}/v1/commerces/${commerce?.id}/logos/${commerce?.logoFileName}`,
       },
       branch: {
         id: branch?.id,
@@ -188,7 +293,7 @@ export class TicketService {
         observation: branch?.observation,
         contacts: contacts?.map((contact) => ({
           id: contact?.id,
-          names: `${contact?.firstName} ${contact?.lastName}` ,
+          names: `${contact?.firstName} ${contact?.lastName}`,
           phone: contact?.phone,
           email: contact?.mail,
         })),

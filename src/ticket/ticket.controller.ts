@@ -9,7 +9,7 @@ import { Utils } from 'src/utils/utils';
 
 @Controller('tickets')
 export class TicketController {
-  constructor(private readonly ticketService: TicketService) {}
+  constructor(private readonly ticketService: TicketService) { }
 
   @Post()
   async create(@Body() tickets: Ticket) {
@@ -26,7 +26,7 @@ export class TicketController {
       const result = this.ticketService.get(id);
       return plainToClass(Ticket, result)
     } catch (error) {
-      
+
     }
   }
 
@@ -40,25 +40,25 @@ export class TicketController {
     exclude: QueryExclude,
     @Query('fields', new ParseJsonPipe<string[]>(Array)) fields: string[],
     @Query('sort', new ParseJsonPipe<QuerySort>(QuerySort)) sort: QuerySort,
-) {
+  ) {
     try {
-        const queryParams: QueryParams = {
-            filters,
-            exclude,
-            fields,
-            sort,
-        };
-        const response = await this.ticketService.list(
-            start,
-            limit,
-            queryParams,
-        );
-        response.records = Utils.mapRecord(Ticket, response.records);
-        return response;
+      const queryParams: QueryParams = {
+        filters,
+        exclude,
+        fields,
+        sort,
+      };
+      const response = await this.ticketService.list(
+        start,
+        limit,
+        queryParams,
+      );
+      response.records = Utils.mapRecord(Ticket, response.records);
+      return response;
     } catch (error) {
-        return error.message;
+      return error.message;
     }
-}
+  }
 
 
   @Put(':id')
@@ -89,8 +89,32 @@ export class TicketController {
     }
   }
 
-  @Post("")
-  async postFlows () {
-    
+  @Get("/flows/all")
+  async listFlows(
+    @Query('page', ParseIntPipe) start: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('filters', new ParseJsonPipe<QueryFilters>(QueryFilters))
+    filters: QueryFilters,
+    @Query('exclude', new ParseJsonPipe<QueryExclude>(QueryExclude))
+    exclude: QueryExclude,
+    @Query('fields', new ParseJsonPipe<string[]>(Array)) fields: string[],
+    @Query('sort', new ParseJsonPipe<QuerySort>(QuerySort)) sort: QuerySort,
+  ) {
+    try {
+      const queryParams: QueryParams = {
+        filters,
+        exclude,
+        fields,
+        sort,
+      };
+      return await this.ticketService.listFlows(
+        start,
+        limit,
+        queryParams,
+      )
+    } catch (error) {
+      console.error(error)
+      return error.message;
+    }
   }
 }
