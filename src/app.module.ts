@@ -19,7 +19,8 @@ import configuration from './configuration';
     DeviceModule, 
     StatesHistoryModule, 
     CommentModule, 
-    EvidenceModule, AppointmentsModule
+    EvidenceModule, 
+    AppointmentsModule
   ],
   providers: [],
 })

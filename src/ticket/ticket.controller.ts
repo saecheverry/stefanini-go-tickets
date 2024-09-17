@@ -113,7 +113,6 @@ export class TicketController {
         queryParams,
       )
     } catch (error) {
-      console.error(error)
       return error.message;
     }
   }
