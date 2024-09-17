@@ -5,6 +5,7 @@ import { CommentModule } from './comment/comment.module';
 import { StatesHistoryModule } from './states_history/states_history.module';
 import { DeviceModule } from './device/device.module';
 import { ConfigModule } from '@nestjs/config';
+import { AppointmentsModule } from './appointments/appointments.module';
 import configuration from './configuration';
 
 @Module({
@@ -18,7 +19,7 @@ import configuration from './configuration';
     DeviceModule, 
     StatesHistoryModule, 
     CommentModule, 
-    EvidenceModule
+    EvidenceModule, AppointmentsModule
   ],
   providers: [],
 })
