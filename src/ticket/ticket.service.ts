@@ -59,6 +59,7 @@ export class TicketService {
     page = page <= 0 ? 1 : page;
     const start = (page - 1) * limit;
     const total = await this.databaseService.count(queryParams, this.collectionName);
+    queryParams.sort = { ...queryParams.sort, createdAt: "desc" };
     const records = await this.databaseService.list(start, limit, queryParams, this.collectionName);
 
     return {
@@ -73,7 +74,7 @@ export class TicketService {
     page = Math.max(page, 1);
     const start = (page - 1) * limit;
     const total = await this.databaseService.count(queryParams, this.collectionName);
-
+    queryParams.sort = { ...queryParams.sort, createdAt: "desc" };
     const response = await this.databaseService.list(start, limit, queryParams, this.collectionName);
     const tickets = Array.isArray(response) ? response : [];
 
@@ -96,15 +97,15 @@ export class TicketService {
   }
 
   mapFieldsIds(tickets) {
-    return tickets.reduce((acc, ticket) => {
-      acc.ticketsId.push(ticket.id);
-      acc.categoriesId.push(ticket.categoryId);
-      acc.subcategoriesId.push(ticket.subcategoryId);
-      acc.commercesId.push(ticket.commerceId);
-      acc.branchesId.push(ticket.branchId);
-      acc.contactsId.push(...ticket.contactsId);
-      acc.coordinatorsId.push(...ticket.coordinators.map(coordinator => coordinator.id));
-      acc.technicalsId.push(...ticket.technicals.map(technical => technical.id));
+    return tickets?.reduce((acc, ticket) => {
+      acc.ticketsId?.push(ticket.id);
+      acc.categoriesId?.push(ticket.categoryId);
+      acc.subcategoriesId?.push(ticket.subcategoryId);
+      acc.commercesId?.push(ticket.commerceId);
+      acc.branchesId?.push(ticket.branchId);
+      acc.contactsId?.push(...ticket.contactsId);
+      acc.coordinatorsId?.push(...ticket.coordinators.map(coordinator => coordinator.id));
+      acc.technicalsId?.push(...ticket.technicals.map(technical => technical.id));
       return acc;
     }, {
       ticketsId: [],
@@ -172,7 +173,6 @@ export class TicketService {
         technicalsList, statesHistoryList, commentsList, evidencesList,
         devicesList, categoriesList, subcategoriesList
       );
-
       const ticketResult = this.mapSuperTicket(
         elements.ticket, elements.commerce, elements.branch, elements.contacts,
         elements.coordinators, elements.technicals, elements.statesHistory,

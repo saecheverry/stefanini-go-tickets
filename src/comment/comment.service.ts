@@ -54,6 +54,7 @@ export class CommentService {
     page = page <= 0 ? 1 : page;
     const start = (page - 1) * limit;
     const total = await this.databaseService.count(queryParams, this.collectionName);
+    queryParams.sort = { ...queryParams.sort, createdAt: "desc" };
     const records = await this.databaseService.list(start, limit, queryParams, this.collectionName);
 
     return {
