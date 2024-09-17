@@ -1,5 +1,5 @@
-import { Exclude } from "class-transformer";
-import { IsNotEmpty, IsString } from "class-validator";
+import { Exclude, Type } from "class-transformer";
+import { IsNotEmpty, IsString, ValidateNested } from "class-validator";
 
 class Contact {
     @IsString()
@@ -21,11 +21,12 @@ class Contact {
 
 export class Appointment {
     @IsString()
-    id: string;
+    @IsNotEmpty()
+    ticketId: string;
 
     @IsString()
     @IsNotEmpty()
-    ticketId: string;
+    technicalId: string;
   
     @IsString()
     @IsNotEmpty()
@@ -35,7 +36,8 @@ export class Appointment {
     @IsNotEmpty()
     endDate: string;
   
-    @IsString()
+    @ValidateNested()
+    @Type(() => Contact)
     @IsNotEmpty()
     contact: Contact;
 
