@@ -74,7 +74,7 @@ export class TicketService {
     page = Math.max(page, 1);
     const start = (page - 1) * limit;
     const total = await this.databaseService.count(queryParams, this.collectionName);
-    queryParams.sort = { ...queryParams.sort, createdAt: "desc" };
+    queryParams.sort = { ...queryParams.sort, plannedDate: "desc" };
     const response = await this.databaseService.list(start, limit, queryParams, this.collectionName);
     const tickets = Array.isArray(response) ? response : [];
 
