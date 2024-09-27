@@ -285,6 +285,7 @@ export class TicketService {
         attentionType: attentionType?.values?.find(_attentionType => _attentionType.value === ticket?.attentionType),
         category,
         subcategory,
+        createdAt: ticket.createdAt,
         priority: priority?.values?.find(_priority => _priority.value === ticket?.priority),
         currentState: ticket?.currentState,
       },
