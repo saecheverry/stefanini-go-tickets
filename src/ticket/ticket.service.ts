@@ -152,7 +152,7 @@ export class TicketService {
     const [
       commercesList, branchesList, categoriesList, subcategoriesList, contactsList, coordinatorsList,
       technicalsList, statesHistoryList, commentsList, evidencesList,
-      devicesList, 
+      devicesList,  appointmentsList, attentionType, priority
     ] = await Promise.all([
       this.databaseService.list(0, LIMIT, { filters: { id: commercesId } }, "commerces"),
       this.databaseService.list(0, LIMIT, { filters: { id: branchesId } }, "branches"),
@@ -164,20 +164,23 @@ export class TicketService {
       this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "states_history"),
       this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "comments"),
       this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "evidences"),
-      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "devices")
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "devices"),
+      this.databaseService.list(0, LIMIT, { filters: { ticketId: ticketsId } }, "appointments"),
+      this.databaseService.get("attentionType", "datas"),
+      this.databaseService.get("priority", "datas")
     ]);
     const records = [];
     for (const ticket of tickets) {
       const elements = this.getOwnTicketElements(
         ticket, commercesList, branchesList, contactsList, coordinatorsList,
         technicalsList, statesHistoryList, commentsList, evidencesList,
-        devicesList, categoriesList, subcategoriesList
+        devicesList, categoriesList, subcategoriesList, appointmentsList
       );
       const ticketResult = this.mapSuperTicket(
         elements.ticket, elements.commerce, elements.branch, elements.contacts,
         elements.coordinators, elements.technicals, elements.statesHistory,
         elements.comments, elements.evidences, elements.devices,
-        elements.category, elements.subcategory
+        elements.category, elements.subcategory, elements.appointments, attentionType, priority
       );
 
       records.push(ticketResult);
@@ -197,7 +200,8 @@ export class TicketService {
     evidencesList,
     devicesList,
     categoriesList,
-    subcategoriesList) {
+    subcategoriesList,
+    appointmentsList) {
 
     const commerce = commercesList.find(commerce => commerce.id === ticket.commerceId);
     const branch = branchesList.find(branch => branch.id === ticket.branchId);
@@ -216,6 +220,7 @@ export class TicketService {
     const comments = commentsList.filter(comment => comment.ticketId === ticket.id);
     const evidences = evidencesList.filter(evidence => evidence.ticketId === ticket.id);
     const devices = devicesList.filter(device => evidences.some(evidence => evidence.id === device.evidenceId));
+    const appointments = appointmentsList.filter(appointment => appointment.ticketId === ticket.id);
 
     return {
       ticket,
@@ -229,11 +234,26 @@ export class TicketService {
       evidences,
       devices,
       category,
-      subcategory
+      subcategory,
+      appointments
     };
   }
 
-  mapSuperTicket(ticket, commerce, branch, contacts, coordinators, technicals, statesHistory, _comments, _evidences, _devices, category, subcategory) {
+  mapSuperTicket(ticket, 
+    commerce, 
+    branch, 
+    contacts, 
+    coordinators,
+    technicals, 
+    statesHistory, 
+    _comments, 
+    _evidences, 
+    _devices, 
+    category, 
+    subcategory, 
+    appointments, 
+    attentionType,
+    priority) {
     const evidences = Utils.mapRecord(Evidence, _evidences);
     const devices = Utils.mapRecord(Device, _devices);
     evidences.forEach(evidence => {
@@ -262,10 +282,10 @@ export class TicketService {
         updateAt: ticket?.updateAt,
         plannedDate: ticket?.plannedDate,
         sla: ticket?.sla,
-        attentionType: ticket?.attentionType,
+        attentionType: attentionType?.values?.find(_attentionType => _attentionType.value === ticket?.attentionType),
         category,
         subcategory,
-        priority: ticket?.priority,
+        priority: priority?.values?.find(_priority => _priority.value === ticket?.priority),
         currentState: ticket?.currentState,
       },
       commerce: {
@@ -280,13 +300,13 @@ export class TicketService {
         id: branch?.id,
         rut: branch?.rut,
         location: {
-          address: branch?.location?.address,
-          city: branch?.location?.city,
-          region: branch?.location?.region,
-          commune: branch?.location?.commune,
+          address: branch?.address,
+          city: branch?.city,
+          region: branch?.region,
+          commune: branch?.commune,
           coords: {
-            latitude: branch?.location?.coords?.latitude,
-            longitude: branch?.location?.coords?.longitude,
+            latitude: branch?.coords?.latitude,
+            longitude: branch?.coords?.longitude,
           },
         },
         name: branch?.name,
@@ -316,7 +336,8 @@ export class TicketService {
       })),
       history: Utils.mapRecord(StatesHistory, statesHistory),
       comments: commentsWithEmployeeNames,
-      evidences
+      evidences,
+      appointments
     };
   }
 
