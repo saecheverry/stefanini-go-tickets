@@ -255,10 +255,6 @@ export class TicketService {
     attentionType,
     priority) {
     const evidences = Utils.mapRecord(Evidence, _evidences);
-    const devices = Utils.mapRecord(Device, _devices);
-    evidences.forEach(evidence => {
-      evidence["devices"] = devices.filter(device => device.evidenceId === evidence["id"]);
-    });
     delete category?._id;
     delete subcategory?._id;
 
