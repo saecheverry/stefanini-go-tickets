@@ -326,6 +326,10 @@ export class TicketService {
       technicals: technicals?.map((technical) => ({
         id: technical?.id,
         role: technical?.role,
+        fullName: `${technical.firstName || ''} ${technical.secondName || ''} ${technical.firstSurname || ''} ${technical.secondSurname || ''}`
+          .trim()
+          .replace(/\s+/g, ' '),
+        rut: technical.rut || "",
         phone: technical?.phone,
         email: technical?.email,
         enabled: technical?.enabled,
