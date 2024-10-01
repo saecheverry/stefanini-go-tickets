@@ -16,7 +16,9 @@ export class StatesHistoryService {
     const statesData = await this.databaseService.get("states", "datas");
     const mapState = (stateId: string) => {
       const foundState = statesData.values.find((state: { name: string, value: string }) => state.value === stateId);
-      return foundState ? { name: foundState.name, value: foundState.value } : { name: "Desconocido", value: stateId };
+      return foundState 
+        ? { name: foundState.name, value: foundState.value.replace(/\s+/g, '') } 
+        : { name: stateId, value: stateId.replace(/\s+/g, '') };
     };
 
     if (Array.isArray(states)) {
