@@ -24,7 +24,7 @@ export class StatesHistoryService {
     if (Array.isArray(states)) {
       const statesWithIds = states.map((stateHistory) => {
         const mappedState = mapState(stateHistory.stateId);
-        stateHistory.stateId.replace(/\s+/g, '');
+        stateHistory.stateId = stateHistory.stateId.replace(/\s+/g, '');
         return {
           id: uuidv4().toString(),
           ...stateHistory,
