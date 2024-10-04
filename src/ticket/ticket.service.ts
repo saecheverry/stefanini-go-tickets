@@ -180,10 +180,6 @@ export class TicketService {
 
   async update(id: string, ticket: UpdateTicketDto) {
     const updatedAt = new Date().toISOString();
-    ticket.technicals.map((technical) => {
-      technical.enabled = false
-    });
-    ticket.technicals[ticket.technicals.length-1].enabled = true;
     ticket['updatedAt'] = updatedAt;
     return (
       (await this.databaseService.update(id, ticket, this.collectionName)) &&
@@ -537,19 +533,22 @@ export class TicketService {
         phone: coordinator?.phone,
         email: coordinator?.email,
       })),
-      technicals: technicals?.map((technical) => ({
-        id: technical?.id,
-        role: technical?.role,
-        fullName:
-          `${technical.firstName || ''} ${technical.secondName || ''} ${technical.firstSurname || ''} ${technical.secondSurname || ''}`
-            .trim()
-            .replace(/\s+/g, ' '),
-        rut: technical.rut || '',
-        phone: technical?.phone,
-        email: technical?.email,
-        enabled: technical?.enabled,
-        assignmentDate: technical?.assignmentDate,
-      })),
+      technicals: ticket.technicals?.map((technical) => {
+        const technicalInfo=technicals.find((tech) => tech?.id === technical?.id); technicals
+        return {
+          id: technical?.id,
+          role: technicalInfo?.role,
+          fullName:
+            `${technicalInfo.firstName || ''} ${technicalInfo.secondName || ''} ${technicalInfo.firstSurname || ''} ${technicalInfo.secondSurname || ''}`
+              .trim()
+              .replace(/\s+/g, ' '),
+          rut: technicalInfo.dniNumber || '',
+          phone: technicalInfo?.phone,
+          email: technicalInfo?.email,
+          enabled: technical?.enabled,
+          assignmentDate: technicalInfo?.assignmentDate,
+        };
+      }),
       history: Utils.mapRecord(StatesHistory, statesHistory),
       comments: commentsWithEmployeeNames,
       evidences,
