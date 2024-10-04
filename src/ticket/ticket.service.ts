@@ -180,6 +180,10 @@ export class TicketService {
 
   async update(id: string, ticket: UpdateTicketDto) {
     const updatedAt = new Date().toISOString();
+    ticket.technicals.map((technical) => {
+      technical.enabled = false
+    });
+    ticket.technicals[ticket.technicals.length-1].enabled = true;
     ticket['updatedAt'] = updatedAt;
     return (
       (await this.databaseService.update(id, ticket, this.collectionName)) &&
