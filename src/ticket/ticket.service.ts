@@ -522,6 +522,7 @@ export class TicketService {
           names: `${contact?.firstName} ${contact?.lastName}`,
           phone: contact?.phone,
           email: contact?.mail,
+          position: contact?.position,
         })),
       },
       coordinators: coordinators?.map((coordinator) => ({
