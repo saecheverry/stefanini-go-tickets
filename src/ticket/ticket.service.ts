@@ -12,7 +12,18 @@ import { StatesHistory } from 'src/states_history/dto/create-states-history.dto'
 import { Utils } from 'src/utils/utils';
 import { Evidence } from 'src/evidence/dto/create-evidence.dto';
 import { Comment } from 'src/comment/dto/create-comment.dto';
-import { Device } from 'src/device/dto/create-device.dto';
+
+interface TransformedTicket {
+  ticketNumber: string;
+  date: string;
+  region: string;
+  comuna: string;
+  technician: string;
+}
+
+interface TicketsByStatus {
+  [status: string]: TransformedTicket[];
+}
 
 @Injectable()
 export class TicketService {
@@ -341,6 +352,7 @@ export class TicketService {
         subcategoriesList,
         appointmentsList,
       );
+
       const ticketResult = this.mapSuperTicket(
         elements.ticket,
         elements.commerce,
@@ -534,7 +546,10 @@ export class TicketService {
         email: coordinator?.email,
       })),
       technicals: ticket.technicals?.map((technical) => {
-        const technicalInfo=technicals.find((tech) => tech?.id === technical?.id); technicals
+        const technicalInfo = technicals.find(
+          (tech) => tech?.id === technical?.id,
+        );
+        technicals;
         return {
           id: technical?.id,
           role: technicalInfo?.role,
@@ -554,5 +569,123 @@ export class TicketService {
       evidences,
       appointments,
     };
+  }
+
+  async getSummary(
+    commercesId?: string[],
+    region?: string,
+    technicalId?: string,
+  ) {
+    const filters: any = {};
+
+    // Solo agrega el filtro de comercio si commercesId tiene un valor
+    if (commercesId && commercesId.length > 0) {
+      filters.commerceId = commercesId;
+    }
+
+    let { records: tickets } = await this.listFlows(0, 1000000, {
+      filters: filters,
+      sort: { createdAt: 'desc' },
+    });
+
+    if (region != null && technicalId != null) {
+      tickets = tickets.filter(
+        (record) =>
+          record.branch.location.region == region &&
+          record.technicals.some(
+            (technical: { id: string; enabled: any }) =>
+              technical.id === technicalId && technical.enabled,
+          ),
+      );
+    }
+
+    if (!Array.isArray(tickets)) return {};
+
+    const ticketsByStatus = this.transformTicketsByStatus(tickets);
+
+    const filtersSummary = {
+      clients: commercesId?.map((id) => {
+        const ticket = tickets.find((tick) => tick.commerce.id === id);
+        return {
+          id: ticket.commerce.id,
+          name: ticket.commerce.name,
+        };
+      }) || [null],
+      regions: [
+        region
+          ? {
+              name: region,
+            }
+          : null,
+      ],
+      technicals: [
+        tickets
+          .map((ticket) => {
+            const data = ticket.technicals.find(
+              (tech) => tech.id === technicalId,
+            );
+            return (
+              data && {
+                id: data.id,
+                name: data.fullName,
+              }
+            );
+          })
+          .find((tech) => tech !== undefined),
+      ],
+    };
+
+    const newTickets = tickets.map((ticket) => ticket.ticket);
+
+    const ticketStatuses = newTickets.reduce(
+      (acc: Record<string, number>, { currentState }) => {
+        acc[currentState] = (acc[currentState] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+
+    const totalTickets = tickets.length;
+    const countByAttentionType =
+      ticketStatuses['Cerrado'] + ticketStatuses['Resuelto'];
+
+    const rateClosed = Math.round((countByAttentionType / totalTickets * 100));
+    const rateOpen = 100 - rateClosed;
+
+    const closedVsPending = {
+      closedPercentage: rateClosed,
+      pendingPercentage: rateOpen,
+    };
+
+    const summary = {
+      totalTickets,
+      ticketsByStatus,
+      ticketStatuses,
+      closedVsPending,
+      filters: filtersSummary,
+    };
+
+    return summary;
+  }
+
+  transformTicketsByStatus(tickets: any[]): TicketsByStatus {
+    const ticketsByStatus: TicketsByStatus = {};
+
+    tickets.forEach((ticket) => {
+      const transformedTicket: TransformedTicket = {
+        ticketNumber: ticket.ticket.ticket_number,
+        date: new Date(ticket.ticket.plannedDate).toISOString().split('T')[0],
+        region: ticket.branch.location.region,
+        comuna: ticket.branch.location.commune,
+        technician: ticket.technicals[0]?.email || 'N/A',
+      };
+
+      if (!ticketsByStatus[ticket.ticket.currentState]) {
+        ticketsByStatus[ticket.ticket.currentState] = [];
+      }
+
+      ticketsByStatus[ticket.ticket.currentState].push(transformedTicket);
+    });
+    return ticketsByStatus;
   }
 }
